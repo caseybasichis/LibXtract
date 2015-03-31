@@ -34,6 +34,15 @@
 #include <float.h> /* on Linux DBL_MAX is in float.h */
 #endif
 
+ #if ANDROID
+#include <android/log.h>
+#define LOG(...)  __android_log_print(ANDROID_LOG_INFO, "AnalysisThread", __VA_ARGS__)
+#else
+#include <stdio.h>
+#define LOG(...)  fprintf(stderr, __VA_ARGS__)
+#endif
+
+
 #include "dywapitchtrack/dywapitchtrack.h"
 
 #include "xtract/libxtract.h"
@@ -140,7 +149,7 @@ int xtract_spectral_centroid(const double *data, const int N, const void *argv, 
 {
 
     int n = (N >> 1);
-
+    // LOG("n: %i", n);
     const double *freqs, *amps;
     double FA = 0.0, A = 0.0;
 
@@ -149,10 +158,12 @@ int xtract_spectral_centroid(const double *data, const int N, const void *argv, 
 
     while(n--)
     {
+        // LOG("N: %i | F: %f | A: %f", n, freqs[n], amps[n]);
         FA += freqs[n] * amps[n];
         A += amps[n];
     }
 
+    // LOG("A: %f", A);
     if(A == 0.0)
         *result = 0.0;
     else
@@ -237,8 +248,11 @@ int xtract_spectral_skewness(const double *data, const int N, const void *argv, 
 
     *result = 0.0;
 
-    while(m--)
-        *result += pow(freqs[m] - ((double *)argv)[0], 3) * amps[m];
+    while(m--) {
+        double x = pow(freqs[m] - ((double *)argv)[0], 3) * amps[m];
+        // LOG("%f | %f | %f | skew: %f", freqs[m], ((double *)argv)[0], amps[m], x);
+        *result += x;
+    }
 
     *result /= pow(((double *)argv)[1], 3);
 
@@ -494,7 +508,7 @@ int xtract_rolloff(const double *data, const int N, const void *argv, double *re
 int xtract_loudness(const double *data, const int N, const void *argv, double *result)
 {
 
-    int n = N, rv;
+    int n = N - 1, rv;
 
     *result = 0.0;
 
@@ -506,8 +520,11 @@ int xtract_loudness(const double *data, const int N, const void *argv, double *r
     else
         rv = XTRACT_SUCCESS;
 
-    while(n--)
-        *result += pow(data[n], 0.23);
+    while(n--) {
+        double x = pow(data[n], 0.23);
+        // LOG("-: %f", x);
+        *result += x;
+    }
 
     return rv;
 }
@@ -647,11 +664,13 @@ int xtract_spectral_inharmonicity(const double *data, const int N, const void *a
 
     while(n--)
     {
+        // LOG("::::  %i || %f | %f | %f", n, freqs[n], fund, amps[n]);
         if(amps[n])
         {
             h = floor(freqs[n] / fund + 0.5);
             num += fabs(freqs[n] - h * fund) * XTRACT_SQ(amps[n]);
             den += XTRACT_SQ(amps[n]);
+            // LOG("::   %f | %f | %f | %f | %f", freqs[n], fund, amps[n], num, den);
         }
     }
 
@@ -1027,7 +1046,9 @@ int xtract_peak(const double *data, const int N, const void *argv, double *resul
     double threshold = *(double *)argv;
     double current = data[N - 1];
     double average = 0.0;
-    double maximum = -DBL_MAX;
+    double maximum = -150.0; // -DBL_MAX;
+
+    // LOG("INITIAL:   %f | %f | %f | %f", threshold, current, average, maximum);
     
     for (uint32_t n = 0; n < N; ++n)
     {
@@ -1036,10 +1057,12 @@ int xtract_peak(const double *data, const int N, const void *argv, double *resul
         {
             maximum = data[n];
         }
+        // LOG("::   %f | %f | %f | %f", threshold, current, average, maximum);
     }
     
+    // LOG("FINALLY:   %f | %f | %f | %f", threshold, current, average, maximum);
     average /= (double)N;
-        
+    
     if (current != maximum)
     {
         return XTRACT_NO_RESULT;

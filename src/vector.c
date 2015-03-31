@@ -38,6 +38,19 @@
 #define M_PI 3.14159265358979323846264338327
 #endif
 
+#if ANDROID
+#include <android/log.h>
+#define LOG(...)  __android_log_print(ANDROID_LOG_INFO, "AudioInputSample", __VA_ARGS__)
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "AudioInputSample", __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "AudioInputSample", __VA_ARGS__)
+#else
+#include <stdio.h>
+#define LOG(...)  fprintf(stderr, "I/AudioInputSample" __VA_ARGS__)
+#define LOGD(...) fprintf(stderr, "D/AudioInputSample" __VA_ARGS__)
+#define LOGE(...) fprintf(stderr, "E/AudioInputSample" __VA_ARGS__)
+#endif
+
+
 int xtract_spectrum(const double *data, const int N, const void *argv, double *result)
 {
 
@@ -106,6 +119,7 @@ int xtract_spectrum(const double *data, const int N, const void *argv, double *r
 
             if(n==0 && !withDC) /* discard DC and keep Nyquist */
             {
+                result[0] = 0.f;
                 ++n;
 #ifdef USE_OOURA
                 marker = &result[M-1];
@@ -156,6 +170,7 @@ int xtract_spectrum(const double *data, const int N, const void *argv, double *r
 
             if(n==0 && !withDC) /* discard DC and keep Nyquist */
             {
+                result[0] = 0.f;
                 ++n;
 #ifdef USE_OOURA
                 marker = &result[M-1];
@@ -192,6 +207,7 @@ int xtract_spectrum(const double *data, const int N, const void *argv, double *r
 
             if(n==0 && !withDC) /* discard DC and keep Nyquist */
             {
+                result[0] = 0.f;
                 ++n;
 #ifdef USE_OOURA
                 marker = &result[M-1];
@@ -236,6 +252,7 @@ int xtract_spectrum(const double *data, const int N, const void *argv, double *r
 
             if(n==0 && !withDC) /* discard DC and keep Nyquist */
             {
+                result[0] = 0.f;
                 ++n;
 #ifdef USE_OOURA
                 marker = &result[M-1];
@@ -477,7 +494,7 @@ int xtract_peak_spectrum(const double *data, const int N, const void *argv, doub
 
     double threshold, max, y, y2, y3, p, q, *input = NULL;
     size_t bytes;
-    int n = N, rv = XTRACT_SUCCESS;
+    int n = N - 1, rv = XTRACT_SUCCESS;
 
     threshold = max = y = y2 = y3 = p = q = 0.0;
 
@@ -506,16 +523,25 @@ int xtract_peak_spectrum(const double *data, const int N, const void *argv, doub
     else
         return XTRACT_MALLOC_FAILED;
 
-    while(n--)
+    // LOGD("MAX: %f", max);
+    while((--n) && (n>1))
         max = XTRACT_MAX(max, input[n]);
 
+    // LOGD("MAX: %f", max);
     threshold *= .01 * max;
 
+    // LOGD("---------------------------------------------");
+    // LOGD("THRESHOLD: %f", threshold);
+    // LOGD("---------------------------------------------");
+
     result[0] = 0;
+    result[1] = 0;
+    result[(N-1)] = 0;
     result[N] = 0;
 
-    for(n = 1; n < N; n++)
+    for(n = 2; n < (N - 1); n++)
     {
+        // LOGD("in: %f", input[n]);
         if(input[n] >= threshold)
         {
             if(input[n] > input[n - 1] && n + 1 < N && input[n] > input[n + 1])
