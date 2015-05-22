@@ -1046,7 +1046,7 @@ int xtract_peak(const double *data, const int N, const void *argv, double *resul
     double threshold = *(double *)argv;
     double current = data[N - 1];
     double average = 0.0;
-    double maximum = -150.0; // -DBL_MAX;
+    double maximum = -DBL_MAX;
 
     // LOG("INITIAL:   %f | %f | %f | %f", threshold, current, average, maximum);
     
@@ -1060,21 +1060,25 @@ int xtract_peak(const double *data, const int N, const void *argv, double *resul
         // LOG("::   %f | %f | %f | %f", threshold, current, average, maximum);
     }
     
-    // LOG("FINALLY:   %f | %f | %f | %f", threshold, current, average, maximum);
     average /= (double)N;
+
+    // LOG("FINALLY:   %f | %f | %f | %f", threshold, current, average, maximum);
     
     if (current != maximum)
     {
+        LOG("{ return: XTRACT_NO_RESULT (1) }");
         return XTRACT_NO_RESULT;
     }
     
     if (current < average + threshold)
     {
+        LOG("{ return: XTRACT_NO_RESULT (2) }");
         return XTRACT_NO_RESULT;
     }
     
     *result = current;
     
+    // LOG("{ return: XTRACT_SUCCESS }");
     return XTRACT_SUCCESS;
     
 }

@@ -38,16 +38,12 @@
 #define M_PI 3.14159265358979323846264338327
 #endif
 
-#if ANDROID
+ #if ANDROID
 #include <android/log.h>
-#define LOG(...)  __android_log_print(ANDROID_LOG_INFO, "AudioInputSample", __VA_ARGS__)
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "AudioInputSample", __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "AudioInputSample", __VA_ARGS__)
+#define LOG(...)  __android_log_print(ANDROID_LOG_INFO, "AnalysisThread", __VA_ARGS__)
 #else
 #include <stdio.h>
-#define LOG(...)  fprintf(stderr, "I/AudioInputSample" __VA_ARGS__)
-#define LOGD(...) fprintf(stderr, "D/AudioInputSample" __VA_ARGS__)
-#define LOGE(...) fprintf(stderr, "E/AudioInputSample" __VA_ARGS__)
+#define LOG(...)  fprintf(stderr, __VA_ARGS__)
 #endif
 
 
@@ -509,6 +505,7 @@ int xtract_peak_spectrum(const double *data, const int N, const void *argv, doub
     if(threshold < 0 || threshold > 100)
     {
         threshold = 0;
+        LOG("{ result: XTRACT_BAD_ARGV }");
         rv = XTRACT_BAD_ARGV;
     }
 
@@ -523,16 +520,26 @@ int xtract_peak_spectrum(const double *data, const int N, const void *argv, doub
     else
         return XTRACT_MALLOC_FAILED;
 
-    // LOGD("MAX: %f", max);
-    while((--n) && (n>1))
-        max = XTRACT_MAX(max, input[n]);
+    // LOG("{ max: %f }", max);
+    while((--n) && (n>1)) {
+        // LOG("{ input: %lf }", input[n]);
+        if (isnan(input[n]) || isnan(max)) {
+            max = XTRACT_MAX(max, 0.0);
+        } else {
+            max = XTRACT_MAX(max, input[n]);
+        }
+    }
 
-    // LOGD("MAX: %f", max);
-    threshold *= .01 * max;
+    if (max == 0.0) {
+        max = 1.0;
+    }
 
-    // LOGD("---------------------------------------------");
-    // LOGD("THRESHOLD: %f", threshold);
-    // LOGD("---------------------------------------------");
+    // LOG("{ max: %f , n: %d }", max, n);
+    threshold *= .1 * max;
+
+    // LOG("---------------------------------------------");
+    // LOG("THRESHOLD: %f", threshold);
+    // LOG("---------------------------------------------");
 
     result[0] = 0;
     result[1] = 0;
@@ -541,8 +548,8 @@ int xtract_peak_spectrum(const double *data, const int N, const void *argv, doub
 
     for(n = 2; n < (N - 1); n++)
     {
-        // LOGD("in: %f", input[n]);
-        if(input[n] >= threshold)
+        // LOG("in: %f", input[n]);
+        if((input[n] >= threshold) && !(isnan(input[n])))
         {
             if(input[n] > input[n - 1] && n + 1 < N && input[n] > input[n + 1])
             {
@@ -698,15 +705,20 @@ int xtract_lpcc(const double *data, const int N, const void *argv, double *resul
 
 int xtract_subbands(const double *data, const int N, const void *argv, double *result)
 {
+    // LOG("{ event : xtract_subbands... }");
+    int n, bw, xtract_func, nbands, scale, start, lower, rv;
+    double *argi;
 
-    int n, bw, xtract_func, nbands, scale, start, lower, *argi, rv;
+    argi = (double *)argv;
 
-    argi = (int *)argv;
-
-    xtract_func = argi[0];
-    nbands = argi[1];
-    scale = argi[2];
-    start = argi[3];
+    xtract_func = (int)argi[0];
+    // LOG("{ argi[0]: %d}", xtract_func);
+    nbands = (int)argi[1];
+    // LOG("{ argi[1]: %d}", nbands);
+    scale = (int)argi[2];
+    // LOG("{ argi[2]: %d}", scale);
+    start = (int)argi[3];
+    // LOG("{ argi[3]: %d}", start);
 
     if(scale == XTRACT_LINEAR_SUBBANDS)
         bw = floorf((N - start) / nbands);
@@ -716,35 +728,50 @@ int xtract_subbands(const double *data, const int N, const void *argv, double *r
     lower = start;
     rv = XTRACT_SUCCESS;
 
+    // LOG("{ nbands: %d , bw: %d , N: %d}", nbands, bw, N);
+
     for(n = 0; n < nbands; n++)
     {
 
+        // LOG("{ extract_func: %d , lower: %d , bw: %ld , n: %d , nbands: %d }", xtract_func, lower, bw, n, nbands);
+
         /* Bounds sanity check */
-        if(lower >= N || lower + bw >= N)
-        {
-            //   printf("n: %d\n", n);
-            result[n] = 0.0;
-            continue;
-        }
-
+        result[n] = (lower >= N || lower + bw >= N) ? 0.0 : result[n];
+        
         rv = xtract[xtract_func](data+lower, bw, NULL, &result[n]);
+        // LOG("{ 1. rv: %d , result[n]: %lf , n: %d }", rv, result[n], n);
 
-        if(rv != XTRACT_SUCCESS)
+        if (isnan(result[n])) {
+            // LOG("{ result[n]: %lf}", result[n]);
+            result[n] = (double)0.0;
+            LOG("{ isnan_result[n]: %lf}", result[n]);
+        }
+        
+        // LOG("{ 2. rv: %d , result[n]: %lf , n: %d }", rv, result[n], n);
+        if(rv != XTRACT_SUCCESS) {
+            LOG("{ return: NOT XTRACT_SUCCESS }");
             return rv;
-
+        }
+        
+        // LOG("{ 3. rv: %d , result[n]: %lf , n: %d , scale: %d }", rv, result[n], n, scale);
+        
         switch(scale)
         {
-        case XTRACT_OCTAVE_SUBBANDS:
+        case 0: //XTRACT_OCTAVE_SUBBANDS:
             lower += bw;
             bw = lower;
+            // LOG("{ lower: %d , bw: %d }", lower, bw);
             break;
-        case XTRACT_LINEAR_SUBBANDS:
+        case 1: //XTRACT_LINEAR_SUBBANDS:
             lower += bw;
+            // LOG("{ lower: %d , bw: %d }", lower, bw);
+            break;
+        default:
+            // LOG("{ default: true , lower: %d , bw: %d }", lower, bw);
             break;
         }
-
     }
-
+    // LOG("{ return_rv: %d }", rv);
     return rv;
 
 }
