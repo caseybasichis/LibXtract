@@ -11,16 +11,13 @@ file(GLOB SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/c-ringbuf/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/dywapitchtrack/*.c")
 
-if(ANDROID)
+if(PR_IOS_BUILD)
+    set(LIBRARIES "-framework Accelerate")
+else()
     list(APPEND HEADER_FILES
          "${CMAKE_CURRENT_SOURCE_DIR}/src/ooura/fftsg.h")
     list(APPEND SOURCE_FILES
          "${CMAKE_CURRENT_SOURCE_DIR}/src/ooura/fftsg.c")
-elseif(PR_IOS_BUILD)
-    set(LIBRARIES "-framework Accelerate")
-endif()
-
-if(NOT PR_IOS_BUILD)
     add_definitions(-DUSE_OOURA)
 endif()
 
