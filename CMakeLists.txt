@@ -16,10 +16,12 @@ if(ANDROID)
          "${CMAKE_CURRENT_SOURCE_DIR}/src/ooura/fftsg.h")
     list(APPEND SOURCE_FILES
          "${CMAKE_CURRENT_SOURCE_DIR}/src/ooura/fftsg.c")
-
-    add_definitions(-DUSE_OOURA)
 elseif(PR_IOS_BUILD)
     set(LIBRARIES "-framework Accelerate")
+endif()
+
+if(NOT PR_IOS_BUILD)
+    add_definitions(-DUSE_OOURA)
 endif()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
