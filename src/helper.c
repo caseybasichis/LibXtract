@@ -33,6 +33,15 @@
 #define INDEX 1
 #endif
 
+  #if ANDROID
+#include <android/log.h>
+#define LOG(...)  __android_log_print(ANDROID_LOG_INFO, "AnalysisThread", __VA_ARGS__)
+#else
+#include <stdio.h>
+#define LOG(...)  fprintf(stderr, __VA_ARGS__)
+#endif
+
+
 int xtract_windowed(const double *data, const int N, const void *argv, double *result)
 {
 
@@ -69,8 +78,9 @@ int xtract_features_from_subframes(const double *data, const int N, const int fe
     rv = xtract[feature](frame1, n, argv, result1);
 
     if(rv == XTRACT_SUCCESS)
+        // LOG("{ feature: %d , n: %d}", feature, n);
         rv = xtract[feature](frame2, n, argv, result2);
-
+        // LOG("{ feature: %d , n: %d , rv: %d}", feature, n, rv);
     return rv;
 
 }
