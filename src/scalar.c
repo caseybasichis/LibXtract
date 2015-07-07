@@ -1066,13 +1066,13 @@ int xtract_peak(const double *data, const int N, const void *argv, double *resul
     
     if (current != maximum)
     {
-        LOG("{ return: XTRACT_NO_RESULT (1) }");
+        // LOG("{ return: XTRACT_NO_RESULT (1) }");
         return XTRACT_NO_RESULT;
     }
     
     if (current < average + threshold)
     {
-        LOG("{ return: XTRACT_NO_RESULT (2) }");
+        // LOG("{ return: XTRACT_NO_RESULT (2) }");
         return XTRACT_NO_RESULT;
     }
     

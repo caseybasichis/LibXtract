@@ -744,7 +744,7 @@ int xtract_subbands(const double *data, const int N, const void *argv, double *r
         if (isnan(result[n])) {
             // LOG("{ result[n]: %lf}", result[n]);
             result[n] = (double)0.0;
-            LOG("{ isnan_result[n]: %lf}", result[n]);
+            // LOG("{ isnan_result[n]: %lf}", result[n]);
         }
         
         // LOG("{ 2. rv: %d , result[n]: %lf , n: %d }", rv, result[n], n);
