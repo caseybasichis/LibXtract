@@ -56,7 +56,7 @@ int xtract_spectrum(const double *data, const int N, const void *argv, double *r
     double q        = 0.0;
     double temp     = 0.0;
     double max      = 0.0;
-    double NxN      = XTRACT_SQ(N);
+    double NxN      = XTRACT_SQ((double)N);
     double *marker  = NULL;
     double real = 0.0;
     double imag = 0.0;
@@ -478,7 +478,7 @@ int xtract_bark_coefficients(const double *data, const int N, const void *argv, 
     for(band = 0; band < XTRACT_BARK_BANDS - 1; band++)
     {
         result[band] = 0.0;
-        for(n = limits[band]; n < limits[band + 1]; n++)
+        for(n = limits[band]; n < limits[band + 1] && n < N; n++)
             result[band] += data[n];
     }
 
