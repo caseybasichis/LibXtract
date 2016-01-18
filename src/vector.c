@@ -535,7 +535,7 @@ int xtract_peak_spectrum(const double *data, const int N, const void *argv, doub
     }
 
     // LOG("{ max: %f , n: %d }", max, n);
-    threshold *= .1 * max;
+    threshold *= .01 * max;
 
     // LOG("---------------------------------------------");
     // LOG("THRESHOLD: %f", threshold);
