@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <float.h>
 
 #include "fft.h"
 
@@ -608,6 +609,62 @@ int xtract_harmonic_spectrum(const double *data, const int N, const void *argv, 
         else
             result[n] = result[M + n] = 0.0;
     }
+    return XTRACT_SUCCESS;
+}
+
+/**
+ *
+ * argv = {f0, freq-closeness-threshold, n_harmonics}
+ *
+ * note: populates "result" first half with the strengths, second half with the
+ * actual freqs (as these might not be precisely the harmonics, but just the
+ * closest available given the spectrum.
+ *
+ * (result, therefore, must have size at least argv[2] * 2
+ *
+ */
+int xtract_n_harmonics(const double *data, const int data_size, const void *argv, double *result)
+{
+    size_t n_peaks = (data_size >> 1), M = n_peaks;
+
+    const double* amps = data;
+    const double* freqs = data + n_peaks;
+    double f0 = *((double *)argv);
+    double threshold = *((double *)argv+1);
+    size_t n_harmonics = *((double *)argv+2);
+
+    double freq_ratio, distance;
+    freq_ratio = distance = 0.0;
+    int nearest_harmonic;
+    nearest_harmonic = 0;
+
+    for (size_t i = 0; i < n_harmonics * 2; ++i) {
+        result[i] = 0;
+    }
+
+    double prev_freq, prev_distance;
+    for (size_t i=0; i < n_peaks; ++i) {
+        if (freqs[i]) {
+            freq_ratio = freqs[i] / f0;
+			nearest_harmonic = floor( 0.5f + freq_ratio); // replace -> nearest = round(ratio);
+            if (nearest_harmonic >= n_harmonics) {
+                break;
+            }
+			distance = fabs(freq_ratio - nearest_harmonic);
+            if ((distance < threshold) && (amps[i] > FLT_EPSILON * 3)) {
+                // we've got a nonzero peak w/in the freq range
+                prev_freq = result[n_harmonics + nearest_harmonic];
+                prev_distance = fabs((prev_freq / f0) - nearest_harmonic);
+                if ((prev_freq < FLT_EPSILON * 3) // we don't have any peak there yet
+                        // or it's closer than the last thing:
+                        || (distance < prev_distance)) {
+                    result[nearest_harmonic] = amps[i];
+                    result[n_harmonics + nearest_harmonic] = freqs[i];
+                }
+            }
+        }
+    }
+
     return XTRACT_SUCCESS;
 }
 
