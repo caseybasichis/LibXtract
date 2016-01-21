@@ -647,19 +647,21 @@ int xtract_n_harmonics(const double *data, const int data_size, const void *argv
         if (freqs[i]) {
             freq_ratio = freqs[i] / f0;
 			nearest_harmonic = floor( 0.5f + freq_ratio); // replace -> nearest = round(ratio);
-            if (nearest_harmonic >= n_harmonics) {
+            if (nearest_harmonic < 1) {
+                continue;
+            } else if (nearest_harmonic > n_harmonics) {
                 break;
             }
 			distance = fabs(freq_ratio - nearest_harmonic);
             if ((distance < threshold) && (amps[i] > FLT_EPSILON * 3)) {
                 // we've got a nonzero peak w/in the freq range
-                prev_freq = result[n_harmonics + nearest_harmonic];
+                prev_freq = result[n_harmonics + nearest_harmonic - 1];
                 prev_distance = fabs((prev_freq / f0) - nearest_harmonic);
                 if ((prev_freq < FLT_EPSILON * 3) // we don't have any peak there yet
                         // or it's closer than the last thing:
                         || (distance < prev_distance)) {
-                    result[nearest_harmonic] = amps[i];
-                    result[n_harmonics + nearest_harmonic] = freqs[i];
+                    result[nearest_harmonic - 1] = amps[i];
+                    result[n_harmonics + nearest_harmonic - 1] = freqs[i];
                 }
             }
         }
