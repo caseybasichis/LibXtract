@@ -14,12 +14,6 @@
 *.sdf
 *.tlog
 
-# sublime 
-
-*sublime*
-
-# vim 
-*.swp
 
 # Python byte code
 *.pyc
@@ -35,3 +29,10 @@ dist
 # Project-specific files
 examples/simpletest/simpletest
 tests/xttest
+
+CMakeFiles*
+*CMakeFiles*
+*.cmake
+Makefile
+*Makefile
+*CMakeCache.txt
