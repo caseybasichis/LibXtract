@@ -33,6 +33,4 @@ tests/xttest
 CMakeFiles*
 *CMakeFiles*
 *.cmake
-Makefile
-*Makefile
 *CMakeCache.txt
